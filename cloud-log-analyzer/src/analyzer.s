@@ -104,11 +104,18 @@ procesar_byte:
     b procesar_byte
 
 fin_numero:
-    // Solo clasificar si efectivamente hubo al menos un dígito
     cbz x23, reiniciar_numero
 
     mov x0, x22
-    bl clasificar_codigo
+
+    // 🔴 detectar 503
+    cmp x0, #503
+    beq encontrado_503
+
+    // si no es 503, reiniciar
+    mov x22, #0
+    mov x23, #0
+    b procesar_byte
 
 reiniciar_numero:
     mov x22, #0
