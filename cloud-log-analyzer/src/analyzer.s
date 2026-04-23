@@ -1,8 +1,8 @@
 /*
-Autor: Equipo docente (base para estudiantes)
+Autor: Lopez Mendoza Alejandro
 Curso: Arquitectura de Computadoras / Ensamblador ARM64
 Práctica: Mini Cloud Log Analyzer (Bash + ARM64 + GNU Make)
-Fecha: 20 de abril de 2026
+Fecha: 22 de abril de 2026
 Descripción: Lee códigos HTTP desde stdin (uno por línea), clasifica 2xx/4xx/5xx
              y muestra un reporte en español usando únicamente syscalls Linux.
 */
@@ -42,6 +42,8 @@ msg_2xx:            .asciz "Éxitos 2xx: "
 msg_4xx:            .asciz "Errores 4xx: "
 msg_5xx:            .asciz "Errores 5xx: "
 msg_fin_linea:      .asciz "\n"
+msg_503:        .asciz "CRITICAL: 503 detectado\n"
+msg_no_503:     .asciz "No se encontro 503\n"
 
 .section .text
 .global _start
@@ -114,10 +116,19 @@ reiniciar_numero:
     b procesar_byte
 
 fin_lectura:
-    // EOF con número pendiente (sin '\n' final)
-    cbz x23, imprimir_reporte
+    // revisar último número si no terminó en \n
+    cbz x23, no_encontrado
+
     mov x0, x22
-    bl clasificar_codigo
+    mov x1, #503
+    cmp x0, x1
+    beq encontrado_503
+
+no_encontrado:
+    adrp x0, msg_no_503
+    add x0, x0, :lo12:msg_no_503
+    bl write_cstr
+    b salida_ok
 
 imprimir_reporte:
     // Encabezado
@@ -154,6 +165,14 @@ imprimir_reporte:
     adrp x0, msg_fin_linea
     add x0, x0, :lo12:msg_fin_linea
     bl write_cstr
+encontrado_503:
+    adrp x0, msg_503
+    add x0, x0, :lo12:msg_503
+    bl write_cstr
+
+    mov x0, #0
+    mov x8, #SYS_exit
+    svc #0
 
 salida_ok:
     mov x0, #0
